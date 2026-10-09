@@ -1,13 +1,18 @@
 # Log Tec
 
-## OBJETIVOS 
+## OBJETIVOS
+
 
 ### STACK TECNÓLOGICO
 - Backend: PHP estruturado em sessões nativas
 - Banco de dados: MySQL (PDO para segurança)
 - Frontend: HTML5, PHP, CSS, Tailwind CSS
 
-#### Regras de negocio (CORE) 
+#### Regras de negocio (CORE)
+- usuário se cadastra no sistema.
+  um único usuário por cpf
+- o sistema terá vários templates de listas, ex: listas de mercado, listas de musicas, de filmes viagens, cada uma com um ícone diferente que o usuário pode alterar.
+
 
 ##### Regras globais
 - Use sempre o mesmo PDO para conexão e quieres no MySQL para evitar SQL Injections
