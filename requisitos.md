@@ -5,7 +5,7 @@
 ### STACK TECNÓLOGICO
 - Backend: PHP estruturado em sessões nativas
 - Banco de dados: MySQL (PDO para segurança)
-- Frontend: HTML5, PHP, CSS, Taiwind CSS
+- Frontend: HTML5, PHP, CSS, Tailwind CSS
 
 #### Regras de negocio (CORE) 
 
