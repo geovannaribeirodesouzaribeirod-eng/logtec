@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogTec - Entregas em Tempo Real & Gestão Logística</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Leaflet.js CSS para Rotas e Mapas -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <link rel="stylesheet" href="assets/css/custom.css">
+</head>
+<body class="flex flex-col min-h-full text-slate-800 antialiased bg-slate-50">
+
+    <!-- Container de Toasts -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col space-y-3 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- Modal Centralizado do Sistema -->
+    <div id="app-modal-wrapper">
+        <div id="modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200">
+            <div id="modal-box" class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 transform scale-95 transition-all duration-200">
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <h3 id="modal-title" class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span id="modal-icon"></span>
+                        <span id="modal-title-text">Aviso</span>
+                    </h3>
+                    <button id="modal-close-x" type="button" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div id="modal-body" class="p-6 text-slate-600 text-sm leading-relaxed"></div>
+                <div id="modal-footer" class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegação MobileFirst -->
+    <header class="sticky top-0 z-40 border-b border-slate-200/80 glass-nav shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                
+                <div class="flex items-center gap-3">
+                    <a href="index.html" class="flex items-center gap-2.5 group">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                            <i class="fa-solid fa-truck-fast text-lg"></i>
+                        </div>
+                        <div>
+                            <span class="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-1">
+                                Log<span class="text-blue-600">Tec</span>
+                            </span>
+                            <span class="hidden sm:block text-[10px] uppercase font-bold tracking-wider text-slate-400 -mt-1">
+                                Entregas em Tempo Real
+                            </span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Links Desktop -->
+                <nav class="hidden md:flex items-center gap-1 font-medium text-sm text-slate-600">
+                    <button onclick="navegarPara('home')" class="nav-item px-3.5 py-2 rounded-lg hover:text-blue-600 transition">
+                        <i class="fa-solid fa-house mr-1.5 text-xs"></i> Início
+                    </button>
+                    <button onclick="navegarPara('dashboard')" class="nav-item px-3.5 py-2 rounded-lg hover:text-blue-600 transition">
+                        <i class="fa-solid fa-chart-pie mr-1.5 text-xs text-blue-500"></i> Painel
+                    </button>
+                    <button onclick="navegarPara('rotas')" class="nav-item px-3.5 py-2 rounded-lg hover:text-blue-600 transition">
+                        <i class="fa-solid fa-map-location-dot mr-1.5 text-xs text-emerald-500"></i> Rotas & GPS
+                    </button>
+                    <button onclick="navegarPara('listas')" class="nav-item px-3.5 py-2 rounded-lg hover:text-blue-600 transition">
+                        <i class="fa-solid fa-list-check mr-1.5 text-xs text-amber-500"></i> Templates de Listas
+                    </button>
+                    <button onclick="navegarPara('vagas')" class="nav-item px-3.5 py-2 rounded-lg hover:text-blue-600 transition">
+                        <i class="fa-solid fa-briefcase mr-1.5 text-xs text-purple-500"></i> Vagas
+                    </button>
+                </nav>
+
+                <!-- Área de Perfil / Acesso -->
+                <div class="hidden md:flex items-center gap-3" id="auth-buttons-desktop">
+                    <div id="user-badge" class="hidden items-center gap-3">
+                        <div class="text-right">
+                            <p id="badge-user-name" class="text-xs font-bold text-slate-800 leading-tight">Usuário</p>
+                            <span id="badge-user-role" class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full"></span>
+                        </div>
+                        <button onclick="deslogarDemo()" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Sair da Conta">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </button>
+                    </div>
+                    <div id="guest-buttons" class="flex items-center gap-2">
+                        <button onclick="abrirModalAuth('login')" class="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-blue-600 transition">
+                            Entrar
+                        </button>
+                        <button onclick="abrirModalAuth('cadastro')" class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition">
+                            Cadastre-se
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Botão Menu Mobile -->
+                <div class="flex md:hidden items-center gap-2">
+                    <button id="btn-mobile-menu" type="button" class="p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition focus:outline-none">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Menu Mobile Expansível -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-2">
+            <button onclick="navegarPara('home')" class="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-100">
+                <i class="fa-solid fa-house w-6 text-slate-400"></i> Início
+            </button>
+            <button onclick="navegarPara('dashboard')" class="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-100">
+                <i class="fa-solid fa-chart-pie w-6 text-blue-500"></i> Painel Principal
+            </button>
+            <button onclick="navegarPara('rotas')" class="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-100">
+                <i class="fa-solid fa-map-location-dot w-6 text-emerald-500"></i> Rotas e Pedidos
+            </button>
+            <button onclick="navegarPara('listas')" class="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-100">
+                <i class="fa-solid fa-list-check w-6 text-amber-500"></i> Templates de Listas
+            </button>
+            <button onclick="navegarPara('vagas')" class="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-slate-700 hover:bg-slate-100">
+                <i class="fa-solid fa-briefcase w-6 text-purple-500"></i> Vagas de Emprego
+            </button>
+            <div class="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                <button onclick="abrirModalAuth('login')" class="text-center px-4 py-2 border border-slate-200 text-slate-700 font-semibold rounded-xl text-sm">
+                    Entrar
+                </button>
+                <button onclick="abrirModalAuth('cadastro')" class="text-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-xl text-sm">
+                    Criar Conta
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL (SPA REATIVO) -->
+    <main class="flex-1">
+        
+        <!-- SEÇÃO: HOME / APRESENTAÇÃO -->
+        <section id="view-home" class="view-panel">
+            
+            <!-- Hero -->
+            <div class="relative overflow-hidden bg-gradient-to-b from-blue-900 via-slate-900 to-slate-950 text-white py-16 sm:py-24">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                        <div class="lg:col-span-7 space-y-6 text-center lg:text-left">
+                            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-400/20 text-blue-300 text-xs sm:text-sm font-semibold">
+                                <span class="pulse-indicator"></span>
+                                Logística Inteligente & Entregas em Tempo Real
+                            </div>
+
+                            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15]">
+                                Facilidade de entrada para <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-400">ambas as partes</span>.
+                            </h1>
+
+                            <p class="text-slate-300 text-base sm:text-lg max-w-2xl leading-relaxed mx-auto lg:mx-0">
+                                Conexão entre <strong>Empresas</strong> (login com CNPJ) e <strong>Funcionários à procura de emprego</strong> (com CPF único e maioridade verificada).
+                            </p>
+
+                            <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
+                                <button onclick="simularLogin('empresa')" class="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-center shadow-lg shadow-blue-500/25 transition flex items-center justify-center gap-2.5">
+                                    <i class="fa-solid fa-building"></i>
+                                    <span>Entrar como Empresa (CNPJ)</span>
+                                </button>
+                                <button onclick="simularLogin('funcionario')" class="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold text-center transition flex items-center justify-center gap-2.5">
+                                    <i class="fa-solid fa-id-card text-emerald-400"></i>
+                                    <span>Entrar como Entregador (CPF)</span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center justify-center lg:justify-start gap-6 pt-3 text-xs text-slate-400">
+                                <span><i class="fa-solid fa-shield-halved text-emerald-400 mr-1"></i> PHP + PDO MySQL</span>
+                                <span><i class="fa-solid fa-user-check text-blue-400 mr-1"></i> Maioridade (+18)</span>
+                                <span><i class="fa-solid fa-fingerprint text-sky-400 mr-1"></i> CPF Único</span>
+                            </div>
+                        </div>
+
+                        <!-- Card de Demonstração em Tempo Real -->
+                        <div class="lg:col-span-5">
+                            <div class="bg-slate-800/90 rounded-2xl border border-slate-700 p-6 shadow-2xl">
+                                <div class="flex items-center justify-between pb-3 border-b border-slate-700 mb-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+                                        <span class="text-xs font-mono font-bold text-slate-300">Entrega Expressa em Tempo Real</span>
+                                    </div>
+                                    <span class="text-xs font-mono bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">LOG-2026-9812</span>
+                                </div>
+                                <div class="space-y-3 text-sm">
+                                    <p class="text-xs text-slate-400">Origem: <strong class="text-white">Av. Paulista, 1000 - Bela Vista</strong></p>
+                                    <div class="border-l-2 border-dashed border-emerald-500 ml-2 pl-3 py-1 text-xs text-emerald-400 font-semibold">
+                                        <i class="fa-solid fa-motorcycle animate-bounce mr-1"></i> Entregador em rota (25 min restantes)
+                                    </div>
+                                    <p class="text-xs text-slate-400">Destino: <strong class="text-white">Rua Augusta, 1500 - Consolação</strong></p>
+                                </div>
+                                <div class="mt-5 pt-3 border-t border-slate-700 flex items-center justify-between">
+                                    <div>
+                                        <span class="text-[10px] text-slate-400 uppercase font-bold">Valor</span>
+                                        <p class="text-lg font-extrabold text-emerald-400">R$ 24,50</p>
+                                    </div>
+                                    <button onclick="navegarPara('rotas')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition">
+                                        Ver no Mapa GPS &rarr;
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 Objetivos Centrais -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <div class="text-center max-w-2xl mx-auto mb-12">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-blue-600 mb-1">Requisitos Atendidos</h2>
+                    <p class="text-3xl font-extrabold text-slate-900 tracking-tight">Objetivos do requisitos.md</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                        <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl mb-4">
+                            <i class="fa-solid fa-handshake"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 mb-1">Facilitação de Entrada</h3>
+                        <p class="text-slate-600 text-xs leading-relaxed">Duas maneiras de entrar: empresa (CNPJ) e funcionário à procura de emprego (CPF único, maioridade).</p>
+                    </div>
+                    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl mb-4">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 mb-1">Entregas em Tempo Real</h3>
+                        <p class="text-slate-600 text-xs leading-relaxed">Telemetria ao vivo, atualização de status de pedidos e rastreamento contínuo.</p>
+                    </div>
+                    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                        <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl mb-4">
+                            <i class="fa-solid fa-route"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 mb-1">Rotas de Entrega</h3>
+                        <p class="text-slate-600 text-xs leading-relaxed">Mapas dinâmicos via Leaflet, cálculo de rotas e simulação interativa de deslocamento.</p>
+                    </div>
+                    <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                        <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl mb-4">
+                            <i class="fa-solid fa-boxes-packing"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-900 mb-1">Pedidos Pendentes</h3>
+                        <p class="text-slate-600 text-xs leading-relaxed">Fila de pedidos aguardando despacho, aceitação por entregadores livres e histórico de entregas.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: DASHBOARD -->
+        <section id="view-dashboard" class="view-panel hidden py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-900">Painel Operacional</h1>
+                    <p class="text-xs text-slate-500" id="dash-user-desc">Visão geral de pedidos e entregas</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="abrirNovoPedidoModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
+                        + Criar Pedido
+                    </button>
+                    <button onclick="navegarPara('rotas')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
+                        Abrir Mapa
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cards de Métricas -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-bold text-slate-400 uppercase">Pedidos Pendentes</span>
+                    <p class="text-3xl font-extrabold text-amber-500 mt-1" id="dash-count-pendentes">3</p>
+                </div>
+                <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-bold text-slate-400 uppercase">Em Rota / Trânsito</span>
+                    <p class="text-3xl font-extrabold text-blue-600 mt-1" id="dash-count-transito">1</p>
+                </div>
+                <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                    <span class="text-xs font-bold text-slate-400 uppercase">Entregues com Sucesso</span>
+                    <p class="text-3xl font-extrabold text-emerald-600 mt-1" id="dash-count-entregues">12</p>
+                </div>
+            </div>
+
+            <!-- Tabela de Pedidos -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                    <h3 class="font-bold text-sm text-slate-800">Fila de Pedidos e Entregas</h3>
+                    <span class="text-xs text-slate-400">Atualizado em tempo real</span>
+                </div>
+                <div id="dash-pedidos-lista" class="divide-y divide-slate-100"></div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: ROTAS E MAPA GPS -->
+        <section id="view-rotas" class="view-panel hidden py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-900">Rotas e Entregas em Tempo Real</h1>
+                    <p class="text-xs text-slate-500">Acompanhamento no mapa interativo com simulação de GPS</p>
+                </div>
+                <button id="btn-simular-gps" onclick="iniciarSimulacaoGPS()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Simular Rota do Entregador</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+                    <div id="mapa-rotas" class="rounded-xl overflow-hidden border border-slate-200"></div>
+                    <div id="gps-status-bar" class="p-3 bg-slate-50 rounded-xl text-xs flex items-center justify-between font-mono text-slate-600">
+                        <span>Status: <strong id="gps-status-txt" class="text-blue-600">Pronto para rastreio</strong></span>
+                        <span>Origem: Av. Paulista &bull; Destino: Consolação</span>
+                    </div>
+                </div>
+                <div class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+                    <h3 class="font-bold text-slate-800 text-sm">Selecione uma Entrega</h3>
+                    <div id="rotas-pedidos-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: TEMPLATES DE LISTAS (Requisito CORE) -->
+        <section id="view-listas" class="view-panel hidden py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+                <div>
+                    <div class="inline-flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full mb-1">
+                        <i class="fa-solid fa-shapes"></i> Requisito do CORE
+                    </div>
+                    <h1 class="text-2xl font-extrabold text-slate-900">Templates de Listas Personalizáveis</h1>
+                    <p class="text-xs text-slate-500">Mercado, Músicas, Filmes, Viagens - cada uma com ícone que você pode alterar!</p>
+                </div>
+                <button onclick="abrirNovaListaModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
+                    + Nova Lista
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Sidebar de Listas -->
+                <div class="lg:col-span-4 space-y-3">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                        <h3 class="font-bold text-slate-700 text-xs uppercase mb-3">Suas Listas</h3>
+                        <div id="listas-sidebar" class="space-y-2"></div>
+                    </div>
+                </div>
+
+                <!-- Conteúdo da Lista Ativa -->
+                <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div id="lista-ativa-header" class="p-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div id="lista-ativa-icon" class="w-12 h-12 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-xl text-blue-600"></div>
+                            <div>
+                                <h2 id="lista-ativa-titulo" class="text-lg font-bold text-slate-800"></h2>
+                                <span id="lista-ativa-cat" class="text-[11px] font-semibold text-slate-400 capitalize"></span>
+                            </div>
+                        </div>
+                        <button onclick="abrirAlterarIconeModal()" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold shadow-xs transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-icons text-blue-600"></i> Alterar Ícone
+                        </button>
+                    </div>
+
+                    <!-- Input Adicionar Item -->
+                    <div class="p-4 border-b border-slate-100 flex gap-2">
+                        <input type="text" id="novo-item-input" placeholder="Adicionar novo item a esta lista..." class="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 text-sm outline-none focus:border-blue-500">
+                        <button onclick="adicionarItemLista()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
+                            Adicionar
+                        </button>
+                    </div>
+
+                    <div id="lista-itens-container" class="divide-y divide-slate-100 max-h-96 overflow-y-auto"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: VAGAS DE EMPREGO -->
+        <section id="view-vagas" class="view-panel hidden py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-900">Oportunidades de Trabalho</h1>
+                    <p class="text-xs text-slate-500">Para funcionários e entregadores à procura de emprego</p>
+                </div>
+                <button onclick="Toast.info('Empresas podem publicar novas vagas no painel!', 'Vagas')" class="px-4 py-2 bg-purple-600 text-white font-bold text-xs rounded-xl shadow-sm">
+                    Painel de Vagas
+                </button>
+            </div>
+            <div id="vagas-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </section>
+
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="bg-white border-t border-slate-200 mt-16 text-slate-500 text-xs py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-truck-fast text-blue-600"></i>
+                <span class="font-bold text-slate-800">LogTec</span>
+                <span>&bull; Projeto em conformidade total com requisitos.md</span>
+            </div>
+            <div class="flex gap-4">
+                <a href="index.php" class="hover:text-blue-600 transition">Versão PHP Backend Completo</a>
+                <a href="requisitos.md" class="hover:text-blue-600 transition">Ver Requisitos</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Leaflet e Scripts de Lógica Reativa -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="assets/js/toast.js"></script>
+    <script src="assets/js/modal.js"></script>
+    <script src="assets/js/app.js"></script>
+
+    <!-- Script de Simulação e Interatividade do Cliente -->
+    <script>
+    // Estado local para visualização cliente imediata
+    const AppState = {
+        usuarioAtual: {
+            tipo: 'funcionario',
+            nome: 'Carlos Silva (Entregador)',
+            identificador: '123.456.789-00'
+        },
+        listas: [
+            {
+                id: 1,
+                titulo: 'Lista de Mercado Semanal',
+                categoria: 'mercado',
+                icone: 'fa-cart-shopping',
+                itens: [
+                    { id: 1, texto: 'Banana, Maçã e Laranja', concluido: true },
+                    { id: 2, texto: 'Café solúvel e Leite', concluido: true },
+                    { id: 3, texto: 'Barra de cereal para rota', concluido: false }
+                ]
+            },
+            {
+                id: 2,
+                titulo: 'Minhas Músicas para Rotas',
+                categoria: 'musica',
+                icone: 'fa-music',
+                itens: [
+                    { id: 4, texto: 'Lo-fi Beats para trânsito', concluido: true },
+                    { id: 5, texto: 'Rock Clássico 80s', concluido: false }
+                ]
+            },
+            {
+                id: 3,
+                titulo: 'Filmes para Fim de Semana',
+                categoria: 'filmes',
+                icone: 'fa-film',
+                itens: [
+                    { id: 6, texto: 'Interestelar', concluido: true },
+                    { id: 7, texto: 'Mad Max: Estrada da Fúria', concluido: false }
+                ]
+            },
+            {
+                id: 4,
+                titulo: 'Planejamento de Viagem',
+                categoria: 'viagem',
+                icone: 'fa-plane-departure',
+                itens: [
+                    { id: 8, texto: 'Revisar calibragem dos pneus', concluido: true },
+                    { id: 9, texto: 'Separar documentos e CNH', concluido: false }
+                ]
+            }
+        ],
+        pedidos: [
+            { id: 1, codigo: 'LOG-2026-9812', cliente: 'Mariana Santos', origem: 'Av. Paulista, 1000', destino: 'Rua Augusta, 1500', itens: '1x Pacote Eletrônicos (Notebook Dell)', frete: 24.50, prazo: '25 min', status: 'pendente' },
+            { id: 2, codigo: 'LOG-2026-9813', cliente: 'Roberto Oliveira', origem: 'Rua Voluntários, 500', destino: 'Rua Vergueiro, 3185', itens: 'Caixa com Medicamentos Express', frete: 32.00, prazo: '40 min', status: 'em_transito' },
+            { id: 3, codigo: 'LOG-2026-9814', cliente: 'Fernanda Lima', origem: 'Hub Sul LogTec', destino: 'Av. Ibirapuera, 3103', itens: '3x Documentos Corporativos', frete: 19.00, prazo: '20 min', status: 'entregue' }
+        ],
+        vagas: [
+            { id: 1, titulo: 'Entregador Motociclista Noturno', empresa: 'LogTec Express Hub', contrato: 'Entregador Parceiro (MEI)', remun: 'R$ 180 a R$ 260 / dia', desc: 'Atendimento de entregas expressas no centro expandido de SP.' },
+            { id: 2, titulo: 'Motorista de Utilitário (Fiorino)', empresa: 'Transportes Paulista', contrato: 'CLT Efetivo', remun: 'R$ 3.200 / mês + Benefícios', desc: 'Distribuição diária de encomendas em lojas de departamento.' }
+        ],
+        listaAtivaId: 1
+    };
+
+    function navegarPara(viewId) {
+        document.querySelectorAll('.view-panel').forEach(p => p.classList.add('hidden'));
+        const target = document.getElementById('view-' + viewId);
+        if (target) {
+            target.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        if (viewId === 'dashboard') renderDashboard();
+        if (viewId === 'rotas') renderRotas();
+        if (viewId === 'listas') renderListas();
+        if (viewId === 'vagas') renderVagas();
+    }
+
+    function renderListas() {
+        const sidebar = document.getElementById('listas-sidebar');
+        sidebar.innerHTML = '';
+
+        AppState.listas.forEach(l => {
+            const isAtiva = l.id === AppState.listaAtivaId;
+            const btn = document.createElement('button');
+            btn.className = `w-full text-left p-2.5 rounded-xl border transition flex items-center justify-between ${isAtiva ? 'bg-blue-50 border-blue-400 text-blue-900 shadow-sm' : 'border-slate-100 hover:bg-slate-50 text-slate-700'}`;
+            btn.innerHTML = `
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-sm text-blue-600">
+                        <i class="fa-solid ${l.icone}"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-xs leading-tight">${l.titulo}</p>
+                        <span class="text-[10px] text-slate-400 capitalize">${l.categoria}</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right text-xs ${isAtiva ? 'text-blue-600' : 'text-slate-300'}"></i>
+            `;
+            btn.onclick = () => {
+                AppState.listaAtivaId = l.id;
+                renderListas();
+            };
+            sidebar.appendChild(btn);
+        });
+
+        // Atualiza a lista ativa
+        const ativa = AppState.listas.find(l => l.id === AppState.listaAtivaId) || AppState.listas[0];
+        if (ativa) {
+            document.getElementById('lista-ativa-icon').innerHTML = `<i class="fa-solid ${ativa.icone}"></i>`;
+            document.getElementById('lista-ativa-titulo').textContent = ativa.titulo;
+            document.getElementById('lista-ativa-cat').textContent = ativa.categoria;
+
+            const itensContainer = document.getElementById('lista-itens-container');
+            itensContainer.innerHTML = '';
+            ativa.itens.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'p-3.5 flex items-center justify-between hover:bg-slate-50 transition';
+                row.innerHTML = `
+                    <div class="flex items-center gap-3 cursor-pointer" onclick="toggleItemLista(${item.id})">
+                        <div class="w-5 h-5 rounded border flex items-center justify-center ${item.concluido ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 bg-white'}">
+                            ${item.concluido ? '<i class="fa-solid fa-check text-xs"></i>' : ''}
+                        </div>
+                        <span class="text-sm font-medium ${item.concluido ? 'line-through text-slate-400' : 'text-slate-800'}">${item.texto}</span>
+                    </div>
+                    <button onclick="removerItemLista(${item.id})" class="text-slate-300 hover:text-rose-500 p-1">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                `;
+                itensContainer.appendChild(row);
+            });
+        }
+    }
+
+    function toggleItemLista(itemId) {
+        const ativa = AppState.listas.find(l => l.id === AppState.listaAtivaId);
+        if (ativa) {
+            const item = ativa.itens.find(i => i.id === itemId);
+            if (item) {
+                item.concluido = !item.concluido;
+                renderListas();
+            }
+        }
+    }
+
+    function adicionarItemLista() {
+        const input = document.getElementById('novo-item-input');
+        const txt = input.value.trim();
+        if (!txt) {
+            Toast.warning('Digite a descrição do item.', 'Atenção');
+            return;
+        }
+        const ativa = AppState.listas.find(l => l.id === AppState.listaAtivaId);
+        if (ativa) {
+            ativa.itens.push({ id: Date.now(), texto: txt, concluido: false });
+            input.value = '';
+            renderListas();
+            Toast.success('Item adicionado à lista!', 'Sucesso');
+        }
+    }
+
+    function removerItemLista(itemId) {
+        AppModal.confirm('Deseja excluir este item da lista?', 'Confirmar Exclusão').then(ok => {
+            if (ok) {
+                const ativa = AppState.listas.find(l => l.id === AppState.listaAtivaId);
+                if (ativa) {
+                    ativa.itens = ativa.itens.filter(i => i.id !== itemId);
+                    renderListas();
+                    Toast.info('Item removido.', 'Excluído');
+                }
+            }
+        });
+    }
+
+    // Modal para Alterar Ícone
+    function abrirAlterarIconeModal() {
+        const ativa = AppState.listas.find(l => l.id === AppState.listaAtivaId);
+        const icones = ['fa-cart-shopping', 'fa-music', 'fa-film', 'fa-plane-departure', 'fa-box', 'fa-motorcycle', 'fa-basket-shopping', 'fa-headphones', 'fa-heart', 'fa-star', 'fa-mug-hot', 'fa-book'];
+        
+        let gridHtml = '<div class="grid grid-cols-4 gap-2.5 p-2">';
+        icones.forEach(ico => {
+            gridHtml += `
+                <button type="button" onclick="selecionarNovoIcone('${ico}')" class="p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50 text-xl text-slate-700 hover:text-blue-600 transition flex items-center justify-center">
+                    <i class="fa-solid ${ico}"></i>
+                </button>
+            `;
+        });
+        gridHtml += '</div>';
+
+        AppModal.open({
+            title: 'Alterar Ícone da Lista: ' + ativa.titulo,
+            body: '<p class="text-xs text-slate-500 mb-3">Escolha um dos ícones abaixo para representar este template:</p>' + gridHtml,
+            footer: '<button onclick="AppModal.close()" class="px-4 py-2 border rounded-xl text-xs font-semibold">Fechar</button>',
+            icon: '<i class="fa-solid fa-icons text-blue-600"></i>'
+        });
+    }
+
+    function selecionarNovoIcone(novoIco) {
+        const ativa = AppState.listas.find(l => l.id === AppState.listaAtivaId);
+        if (ativa) {
+            ativa.icone = novoIco;
+            renderListas();
+            AppModal.close();
+            Toast.success('Ícone da lista atualizado com sucesso!', 'Personalização Salva');
+        }
+    }
+
+    function abrirNovaListaModal() {
+        AppModal.prompt('Digite o título para o seu novo template de lista:', 'Minha Lista de Tarefas', 'Criar Template').then(titulo => {
+            if (titulo) {
+                const nova = {
+                    id: Date.now(),
+                    titulo: titulo,
+                    categoria: 'personalizada',
+                    icone: 'fa-list-check',
+                    itens: [{ id: Date.now() + 1, texto: 'Primeiro item da lista', concluido: false }]
+                };
+                AppState.listas.unshift(nova);
+                AppState.listaAtivaId = nova.id;
+                renderListas();
+                Toast.success('Nova lista criada com sucesso!', 'Lista Pronta');
+            }
+        });
+    }
+
+    function renderDashboard() {
+        const pendentes = AppState.pedidos.filter(p => p.status === 'pendente');
+        const transito = AppState.pedidos.filter(p => p.status === 'em_transito');
+        const entregues = AppState.pedidos.filter(p => p.status === 'entregue');
+
+        document.getElementById('dash-count-pendentes').textContent = pendentes.length;
+        document.getElementById('dash-count-transito').textContent = transito.length;
+        document.getElementById('dash-count-entregues').textContent = entregues.length;
+
+        const listEl = document.getElementById('dash-pedidos-lista');
+        listEl.innerHTML = '';
+        AppState.pedidos.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'p-4 flex items-center justify-between hover:bg-slate-50 transition';
+            div.innerHTML = `
+                <div>
+                    <span class="text-xs font-mono font-bold text-blue-600">${p.codigo}</span> &bull; 
+                    <span class="text-xs font-bold text-slate-800">${p.cliente}</span>
+                    <p class="text-xs text-slate-500">${p.origem} &rarr; ${p.destino}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-extrabold text-emerald-600">R$ ${p.frete.toFixed(2).replace('.', ',')}</p>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${p.status === 'pendente' ? 'bg-amber-100 text-amber-800' : (p.status === 'em_transito' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800')}">${p.status}</span>
+                </div>
+            `;
+            listEl.appendChild(div);
+        });
+    }
+
+    function renderRotas() {
+        const listEl = document.getElementById('rotas-pedidos-list');
+        listEl.innerHTML = '';
+        AppState.pedidos.forEach(p => {
+            const btn = document.createElement('div');
+            btn.className = 'p-3 rounded-xl border border-slate-200 bg-slate-50/70 text-xs space-y-1';
+            btn.innerHTML = `
+                <div class="flex justify-between font-mono font-bold text-slate-800">
+                    <span>${p.codigo}</span>
+                    <span class="text-emerald-600 font-extrabold">R$ ${p.frete.toFixed(2).replace('.', ',')}</span>
+                </div>
+                <p class="text-slate-600 truncate">Destino: ${p.destino}</p>
+                <div class="pt-1 flex justify-between text-[11px] text-slate-400">
+                    <span>${p.prazo}</span>
+                    <span class="capitalize font-semibold text-blue-600">${p.status}</span>
+                </div>
+            `;
+            listEl.appendChild(btn);
+        });
+
+        // Inicializa o mapa Leaflet se ainda não inicializado
+        setTimeout(() => {
+            if (!window.leafletMap) {
+                window.leafletMap = L.map('mapa-rotas').setView([-23.550520, -46.633308], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(window.leafletMap);
+
+                window.leafletMarker = L.marker([-23.550520, -46.633308]).addTo(window.leafletMap).bindPopup('Entregador GPS Ao Vivo');
+                window.leafletDestino = L.marker([-23.561414, -46.655881]).addTo(window.leafletMap).bindPopup('Destino do Cliente');
+            }
+            window.leafletMap.invalidateSize();
+        }, 100);
+    }
+
+    function iniciarSimulacaoGPS() {
+        Toast.info('Simulação em andamento: telemetria GPS transmitindo...', 'Rastreio Ao Vivo');
+        const statusEl = document.getElementById('gps-status-txt');
+        statusEl.textContent = 'Entregador em deslocamento...';
+
+        let t = 0;
+        const interval = setInterval(() => {
+            t += 0.05;
+            const lat = -23.550520 + (-23.561414 - -23.550520) * t;
+            const lng = -46.633308 + (-46.655881 - -46.633308) * t;
+
+            if (window.leafletMarker) {
+                window.leafletMarker.setLatLng([lat, lng]);
+                window.leafletMap.panTo([lat, lng]);
+            }
+
+            if (t >= 1) {
+                clearInterval(interval);
+                statusEl.textContent = 'Chegou ao destino com sucesso!';
+                Toast.success('Entregador chegou ao endereço do cliente!', 'Entrega Concluída');
+            }
+        }, 150);
+    }
+
+    function renderVagas() {
+        const grid = document.getElementById('vagas-grid');
+        grid.innerHTML = '';
+        AppState.vagas.forEach(v => {
+            const card = document.createElement('div');
+            card.className = 'p-5 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between';
+            card.innerHTML = `
+                <div>
+                    <span class="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">${v.contrato}</span>
+                    <h3 class="text-base font-bold text-slate-900 mt-2">${v.titulo}</h3>
+                    <p class="text-xs text-slate-500">${v.empresa}</p>
+                    <p class="text-xs text-slate-600 mt-2">${v.desc}</p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <p class="text-sm font-extrabold text-emerald-600">${v.remun}</p>
+                    <button onclick="Toast.success('Candidatura enviada à empresa!', 'Candidatado')" class="px-3 py-1.5 bg-purple-600 text-white rounded-xl text-xs font-bold">
+                        Candidatar
+                    </button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function simularLogin(tipo) {
+        if (tipo === 'empresa') {
+            AppState.usuarioAtual = { tipo: 'empresa', nome: 'LogTec Express Hub', identificador: '12.345.678/0001-99' };
+        } else {
+            AppState.usuarioAtual = { tipo: 'funcionario', nome: 'Carlos Silva', identificador: '123.456.789-00' };
+        }
+        atualizarHeaderUser();
+        Toast.success(`Conectado com sucesso como ${tipo === 'empresa' ? 'Empresa (CNPJ)' : 'Funcionário (CPF)'}!`, 'Login Efetuado');
+        navegarPara('dashboard');
+    }
+
+    function deslogarDemo() {
+        AppModal.confirm('Deseja realmente sair da sua sessão?', 'Encerrar Sessão').then(ok => {
+            if (ok) {
+                AppState.usuarioAtual = null;
+                atualizarHeaderUser();
+                Toast.info('Você saiu da sua conta.', 'Desconectado');
+                navegarPara('home');
+            }
+        });
+    }
+
+    function atualizarHeaderUser() {
+        const uBadge = document.getElementById('user-badge');
+        const gBtns = document.getElementById('guest-buttons');
+        if (AppState.usuarioAtual) {
+            uBadge.classList.remove('hidden');
+            uBadge.classList.add('flex');
+            gBtns.classList.add('hidden');
+            document.getElementById('badge-user-name').textContent = AppState.usuarioAtual.nome;
+            document.getElementById('badge-user-role').textContent = AppState.usuarioAtual.tipo === 'empresa' ? 'Empresa (CNPJ)' : 'Entregador (CPF)';
+        } else {
+            uBadge.classList.add('hidden');
+            uBadge.classList.remove('flex');
+            gBtns.classList.remove('hidden');
+        }
+    }
+
+    function abrirModalAuth(tipo) {
+        if (tipo === 'login') {
+            AppModal.open({
+                title: 'Entrar no Sistema LogTec',
+                body: `
+                    <div class="space-y-4 text-xs">
+                        <p class="text-slate-600">Escolha uma conta demonstrativa para simular o acesso:</p>
+                        <button onclick="simularLogin('funcionario'); AppModal.close();" class="w-full p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left flex items-center justify-between">
+                            <div>
+                                <strong class="text-slate-900 block text-sm">Funcionário / Entregador (CPF)</strong>
+                                <span class="text-slate-500 font-mono">123.456.789-00</span>
+                            </div>
+                            <i class="fa-solid fa-arrow-right text-emerald-600"></i>
+                        </button>
+                        <button onclick="simularLogin('empresa'); AppModal.close();" class="w-full p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-left flex items-center justify-between">
+                            <div>
+                                <strong class="text-slate-900 block text-sm">Empresa (CNPJ)</strong>
+                                <span class="text-slate-500 font-mono">12.345.678/0001-99</span>
+                            </div>
+                            <i class="fa-solid fa-arrow-right text-blue-600"></i>
+                        </button>
+                    </div>
+                `,
+                footer: '<a href="login.php" class="text-xs text-blue-600 font-bold hover:underline">Abrir página PHP completa &rarr;</a>',
+                icon: '<i class="fa-solid fa-lock text-blue-600"></i>'
+            });
+        } else {
+            window.location.href = 'cadastro.php';
+        }
+    }
+
+    function abrirNovoPedidoModal() {
+        AppModal.prompt('Digite o nome do cliente para o novo pedido:', 'Ana Carolina Silva', 'Novo Pedido').then(cliente => {
+            if (cliente) {
+                AppState.pedidos.unshift({
+                    id: Date.now(),
+                    codigo: 'LOG-2026-' + Math.floor(1000 + Math.random() * 9000),
+                    cliente: cliente,
+                    origem: 'Av. Paulista, 1000',
+                    destino: 'Rua Oscar Freire, 800',
+                    itens: '1x Pacote Express',
+                    frete: 22.00,
+                    prazo: '30 min',
+                    status: 'pendente'
+                });
+                renderDashboard();
+                Toast.success('Novo pedido pendente adicionado à fila!', 'Pedido Registrado');
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        atualizarHeaderUser();
+        renderListas();
+    });
+    </script>
+</body>
+</html>
