@@ -1,7 +1,10 @@
 # Log Tec
 
 ## OBJETIVOS
-
+Facilitação de entrada pra ambas partes 
+Entregas em tempo real
+Rotas de entrega
+Pedidos pendentes e entregas
 
 ### STACK TECNÓLOGICO
 - Backend: PHP estruturado em sessões nativas
@@ -12,9 +15,8 @@
 - usuário se cadastra no sistema.
   um único usuário por cpf
 - o sistema terá vários templates de listas, ex: listas de mercado, listas de musicas, de filmes viagens, cada uma com um ícone diferente que o usuário pode alterar.
-- terá duas maneiras de entrar, como empresa (entrando com cnpj), e como funcionário a procura de emprego
--  
-
+- terá duas maneiras de entrar, como empresa (entrando com cnpj), e como funcionário a procura de emprego.
+-  precisa ter a maior idade
 ##### Regras globais
 - Use sempre o mesmo PDO para conexão e quieres no MySQL para evitar SQL Injections
 - Mantenha o código limpo e comente apenas logicas complexas.
