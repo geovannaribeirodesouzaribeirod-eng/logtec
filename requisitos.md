@@ -12,7 +12,8 @@
 - usuário se cadastra no sistema.
   um único usuário por cpf
 - o sistema terá vários templates de listas, ex: listas de mercado, listas de musicas, de filmes viagens, cada uma com um ícone diferente que o usuário pode alterar.
-
+- terá duas maneiras de entrar, como empresa (entrando com cnpj), e como funcionário a procura de emprego
+-  
 
 ##### Regras globais
 - Use sempre o mesmo PDO para conexão e quieres no MySQL para evitar SQL Injections
